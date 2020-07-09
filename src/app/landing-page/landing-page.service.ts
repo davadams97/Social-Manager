@@ -1,20 +1,43 @@
 import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
-import {Observable} from 'rxjs';
+
+import {EMPTY, Observable} from 'rxjs';
+import {catchError, shareReplay} from 'rxjs/operators';
 
 @Injectable({
-  providedIn: 'root'
+    providedIn: 'root',
 })
 export class LandingPageService {
+    private _cachedExpiringPerCountry: {} = {};
 
-  public url: string = 'https://unogs-unogs-v1.p.rapidapi.com/aaapi.cgi?q=get%3Aexp%3AUS&t=ns&st=adv&p=1';
+    constructor(private _http: HttpClient) {
+        let r = Math.random().toString(36).substring(7);
+        console.log('random', r);
+    }
 
-  constructor(private _http: HttpClient) {
-  }
+    public getExpiringPerCountry$(countryCode?: string): Observable<any> {
+        const url: string = `https://unogs-unogs-v1.p.rapidapi.com/aaapi.cgi?q=get%3Aexp%3A${countryCode}&t=ns&st=adv&p=1`;
+        const header: HttpHeaders = new HttpHeaders()
+            .set('x-rapidapi-host', 'unogs-unogs-v1.p.rapidapi.com')
+            .append(
+                'x-rapidapi-key',
+                'd5606574aemsh8f4f6dfa46279dcp15dfe6jsna48d5f811ebd'
+            );
 
-  public getExpiringPerCountry(): Observable<any> {
-    const head: HttpHeaders = new HttpHeaders().set('x-rapidapi-host', 'unogs-unogs-v1.p.rapidapi.com')
-      .append('x-rapidapi-key', 'fca4bb1a25msh940c2d91312e6e0p151602jsn7370b392364a');
-    return this._http.get<any>(this.url, {headers: head});
-  }
+        if (this._cachedExpiringPerCountry[countryCode]) {
+            return this._cachedExpiringPerCountry[countryCode];
+        }
+        // TODO: create interface
+        this._cachedExpiringPerCountry[countryCode] = this._http
+            .get<any>(url, { headers: header, observe: 'response' })
+            .pipe(
+                shareReplay(1),
+                catchError(() => {
+                    delete this._cachedExpiringPerCountry[countryCode];
+                    return EMPTY;
+                })
+            );
+
+        return this._cachedExpiringPerCountry[countryCode];
+    }
 }
