@@ -11,7 +11,7 @@ export class LandingPageService {
     private _cachedExpiringPerCountry: {} = {};
 
     constructor(private _http: HttpClient) {
-        let r = Math.random().toString(36).substring(7);
+        const r = Math.random().toString(36).substring(7);
         console.log('random', r);
     }
 
